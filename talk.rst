@@ -1427,7 +1427,7 @@ AWOOGA: Password resets
   "Personal questions" are backdoors to your system
     Personal questions are an abomination. It's a poor-man's mechanism
     of adding a "what-you-know" factor to authentication, and it works
-    just as described -- poorly.
+    just as conceived -- poorly.
 
     If users are allowed to pick their own questions, they are
     inevitably something easily guessable, such as "what is your
@@ -1474,7 +1474,7 @@ AWOOGA: Email from site
   * Infamous ``formmail.cgi``
 
 * Hard-coding the recipient limits the problem
-* "Captchas" help against bots (for now)
+* "Captchas" help against bots (a bit)
 * Expiring tokens help against bots
 * Beware of cheap copy-pasters from "3rd-world"
 
@@ -1482,8 +1482,25 @@ AWOOGA: Email from site
 
 .. container:: handout
 
-  *NB: Handout comments to the rest of the talk will be added as time
-  allows*
+  Contact forms are everywhere, and an amazing number of sites still use
+  "formmail.cgi", in its many incarnations. The original version of
+  formmail.cgi allowed the site owners to set both the "from" and the
+  "to" as part of the form fields, which was responsible for untold
+  petabytes of spam throughout the years. Newer incarnations required
+  specifying the "to" field inside the script itself, which at least
+  reduced the spam recipients to just the site owners.
+
+  We've tried to make spammers' lives more difficult with Captchas, but
+  it's a war we've pretty much lost. Adding captchas to your forms has
+  very limited effect these days.
+
+  We've started adding expiry tokens to forms, which act similar to XSRF
+  tokens we went over earlier. This is effective in some cases, but if
+  you have a highly trafficked site, spammers will simply hire very
+  cheap 3-rd world labour to cut-and-paste spam into your forms.
+
+  If you must have a contact form on your site, have a good
+  spam-fighting strategy to go with that.
 
 
 AWOOGA: File uploads
@@ -1494,12 +1511,37 @@ AWOOGA: File uploads
 
   * Or run a virus-scan on uploaded content
 
+.. container:: handout
+
+  If your site allows users to upload files, make sure you don't place
+  those files into the webroot where they can be accessed via an URL. If
+  you must do this, make sure you accept only a limited subset of
+  extensions (e.g. only .PNG, .JPG, .GIF but not .PHP, .EXE, etc). If
+  your environment allows you to do it, actually check the mime-type of
+  the submitted content before you accept it, and turn off mod_mime in
+  Apache -- otherwise you're running a chance of recognizing that a .JPG
+  is actually a PHP file and executing it.
+
+  Do have a policy of telling your clients that uploaded files will be
+  treated as potentially hostile, and run a virus check on them. Have an
+  SOP in place to deal with uploaded malware, copyrighted content, or
+  plain old porn.
+
 
 AWOOGA: Templating systems
 --------------------------
 * Amazing number of them uses ``eval()``
 * Those that don't may not properly escape formatting codes from user
   content
+
+.. container:: handout
+
+  If you look at the number of web application vulnerabilities, you will
+  notice how many of them deal with various templating engines. There's
+  a good reason for that -- templates by their design must be able to
+  insert user-provided content, and many of them do it by calling
+  "eval()" at some point. When evaluating which templating engine to use
+  for your project, do take their security history into consideration.
 
 
 AWOOGA: Search
@@ -1515,6 +1557,34 @@ AWOOGA: Search
   * May leave you exposed to shell injection attacks
   * Or DoS attacks, because they are usually slow
 
+.. container:: handout
+
+  Every good site includes a search function, which can be implemented
+  in any number of ways -- commonly either by doing direct database
+  queries, by interfacing with a crawler tool or appliance, or by
+  outsourcing this whole ordeal to a big-name search engine. If you're
+  doing the first two, be mindful of the following things:
+
+  Database-based search
+    Aside from being vulnerable to the usual SQL injection attacks,
+    database-driven search implementations should be mindful of exposing
+    non-public content. Make sure when you're querying the database that
+    you're not returning any hits for private pages.
+
+  Crawler solutions
+    Similar problems exist with crawler solutions, such as the Google
+    Search Appliance. If your site uses any IP-based logic to restrict
+    access to pages or documents, make sure your crawler is either aware
+    of that, or that its IP is specifically treated as public. Great
+    many documents have been exposed to public simply because the
+    crawler accessed the site from what it considered to be "internal
+    company address."
+
+    Additionally, unless your crawler is really fast, be wary that it
+    can inadvertently DoS your site. People like search boxes and will
+    use them when found, so slow responses from the crawler may exhaust
+    your maxclients setting.
+
 
 AWOOGA: Installers
 ------------------
@@ -1523,6 +1593,20 @@ AWOOGA: Installers
 
   * May have full admin access to reconfigure your site
   * May be full of exploits
+
+.. container:: handout
+
+  Most web software comes with an installer, and while it's convenient,
+  it usually requires that you have a webroot directory writable by the
+  httpd process. In terms of security, that's a very terrible idea,
+  since pretty much any successful code injection vulnerability will
+  allow an attacker to install a backdoor.
+
+  Not only that, but very commonly the installers are left around after
+  they have completed, and since they aren't treated with as much
+  scrutiny as the rest of the web application, they can have slappy code
+  leading to many vulnerabilities, or even allow anyone to reconfigure
+  your site.
 
 
 SELinux: brief introduction
