@@ -242,10 +242,6 @@ Generic vulnerabilities
   * Privilege escalation
   * Session theft
 
-* HTTP header manipulation
-
-  * Cache poisoning
-
 .. container:: handout
 
   In the next few slides we will look at each of the above in more
@@ -1257,7 +1253,7 @@ AWOOGA: Encryption
 ------------------
 * Encryption is easy to get wrong
 
-  * Symmetric? Asymmetric? AES? CBC?
+  * Symmetric? Asymmetric? AES? CBC or CFB?
 
 * "Encrypt data at rest" requirement
 
@@ -1397,10 +1393,9 @@ AWOOGA: Password storage
     app's responsiveness, but it will make it unfeasible for an attacker
     to try to brute-force it.
 
-    Use ``sha256`` or ``sha512``. If you're a hipster, use bcrypt or
-    scrypt with lots of rounds (look it up!). PHP 5.3 finally has a
-    native ``crypt()`` function that supports new hashing mechanisms --
-    use it!
+    Use ``sha256`` or ``sha512``. If you're a hipster, use pbkdf2 or bcrypt
+    with lots of rounds (look it up!). PHP 5.3 finally has a native
+    ``crypt()`` function that supports new hashing mechanisms -- use it!
 
 
 AWOOGA: Password resets
@@ -1519,8 +1514,8 @@ AWOOGA: File uploads
   extensions (e.g. only .PNG, .JPG, .GIF but not .PHP, .EXE, etc). If
   your environment allows you to do it, actually check the mime-type of
   the submitted content before you accept it, and turn off mod_mime in
-  Apache -- otherwise you're running a chance of recognizing that a .JPG
-  is actually a PHP file and executing it.
+  Apache -- otherwise you're running a chance of it recognizing that a
+  .JPG is actually a PHP file and executing it.
 
   Do have a policy of telling your clients that uploaded files will be
   treated as potentially hostile, and run a virus check on them. Have an
@@ -1630,11 +1625,36 @@ SELinux and web apps
   * Code injection attacks
   * Curious users poking around
 
-* Much more powerful when used with CGI scripts
+* Much more powerful when used with CGI/FCGI scripts
 
-  * Must do actual ``exec()`` with domain transition, so ``mod_fcgi``
-    doesn't work (AFAICT)
-  * Advanced configuration not covered here
+  * Subject of our hands-on session
+
+.. container:: handout
+
+  Limited usefulness for builtin scripting
+    If you are running mod_php (and who isn't), mod_perl or any other
+    builtin Apache module, anything executed by that module will run
+    within the main httpd context, ``httpd_t``. While this wouldn't really
+    matter in an environment where Apache handles just one site, if
+    you are trying to host more than one application on the same httpd
+    server, you will have to grant Apache the summary of all
+    permissions. In other words, if you have 20 web apps and only one of
+    them needs to be able to connect to some random port on the web for
+    a REST call, you will have to allow ``httpd_can_network_connect``
+    and therefore ALL 20 of your web applications will be able to connect
+    to random ports on the internet.
+
+    This doesn't mean that SELinux is useless in this case -- you're
+    still erecting a pretty good defence against vulnerabilities in the
+    httpd daemon, restricting potential code injection attacks, and
+    generally reducing what users can access on a Linux system.
+
+  Much more handy when the process transitions to its own domain
+    When Apache executes a CGI/FCGI application, it is able to
+    transition from its core SELinux domain (``httpd_t``) to the
+    application's own domain. This allows to sandbox an application much
+    more tightly, and only grant permissions required by each
+    application.
 
 
 Living with SELinux
@@ -1656,7 +1676,6 @@ Essential httpd file contexts
 :``httpd_sys_rw_content_t``:  Files that can be modified by httpd
 :``httpd_sys_script_exec_t``: CGI executables
 :``public_content_rw_t``:     Blanket type for all other public content
-:``httpd_unconfined_script_exec_t``: For very complex CGI scripts
 
 
 Setting contexts with semanage
@@ -1709,6 +1728,7 @@ Essential httpd booleans (contd)
                             ``~/public_html``
 :``httpd_tty_comm``:        Allow httpd access to tty
                             (passphrase-protected SSL certificates)
+:``httpd_use_nfs``:         Allow httpd to access nfs-mounted partitions
 
 
 Writing your own policies
@@ -1725,7 +1745,7 @@ Writing your own policies
 
 ModSecurity: what it is
 -----------------------
-* "Application firewall"
+* "Web Application Firewall" (WAF)
 * Analysis of HTTP traffic at the Apache level
 
   * Restrict HTTP methods
@@ -1761,7 +1781,7 @@ ModSecurity: paranoid approach
   * "Password may not contain the word SELECT"
 
 
-ModSecurity: Heuristic approach
+ModSecurity: heuristic approach
 -------------------------------
 * Understand security thresholds
 * Review and understand pre-written rules
@@ -1776,10 +1796,22 @@ ModSecurity: tweaking rules
 
   * Upgrades will become a mess
 
-* Use ``SecRuleRemoveById`` for blunt tweaks
-* Use ``TX:`` variables for fine-tuning
+* Use ``SecRuleRemoveBy*`` to turn off rules
+* Use ``SecRuleUpdateTargetBy*`` to modify core rules
 
-  * Decrease score based on various criteria
+  * Add exceptions based on various criteria
+
+ModSecurity: also good for
+--------------------------
+* Detailed audit information
+
+  * Always logs full headers
+  * Can log POST body (but think twice!)
+
+* Can scan outgoing data
+
+  * Add "fakeuserpassword" into your password table
+  * Abort response if that string is seen in body
 
 PHP: mod_suphp
 --------------
@@ -1791,31 +1823,8 @@ PHP: mod_suphp
 
   * Can ``chroot`` to ``$HOME``
 
-* Perfect tool for multi-site hosting
-
-
-Hardened PHP: Suhosin
----------------------
-* 수호신 means "Guardian Angel"
-* Offers a patch and an add-on module
-
-  * Patch is for bad code in PHP itself
-  * Add-on offers extra protection
-
-
-Suhosin: Add-on features
-------------------------
-* Cookie and session data encryption
-
-  * Can use USER_AGENT or REMOTE_ADDR octets
-  * Transparent operation
-
-* Disallow ``include()`` of uploaded files
-* Disable ``eval()`` or other functions
-* Set maximum recursion depth
-* Set maximum GET/POST/COOKIE value limits
-* Really disable ``include()`` of remote files
-
+* Nice tool for multi-site hosting
+* Runs as part of httpd_t domain
 
 Tools
 -----
