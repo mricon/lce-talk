@@ -1617,6 +1617,19 @@ SELinux: brief introduction
   * Extra work when doing something "non-standard"
 
 
+Living with SELinux
+-------------------
+* Familiarize yourself with SELinux
+* Start with ``permissive mode``
+* Do not change default file locations
+
+  * Or learn how SELinux file labeling works
+  * You may have to anyway
+
+* Learn how to use ``ausearch`` and ``aureport``
+* Learn SELinux file contexts and booleans
+
+
 SELinux and web apps
 --------------------
 * Limited usefulness when running scripts as part of httpd
@@ -1655,19 +1668,6 @@ SELinux and web apps
     application's own domain. This allows to sandbox an application much
     more tightly, and only grant permissions required by each
     application.
-
-
-Living with SELinux
--------------------
-* Familiarize yourself with SELinux
-* Start with ``permissive mode``
-* Do not change default file locations
-
-  * Or learn how SELinux file labeling works
-  * You may have to anyway
-
-* Learn how to use ``ausearch`` and ``aureport``
-* Learn SELinux file contexts and booleans
 
 
 Essential httpd file contexts
