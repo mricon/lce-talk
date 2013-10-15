@@ -1226,6 +1226,7 @@ Cookies: Session fixation fix
   authentication, just to make sure that the identifier is always reset
   to a new random value.
 
+
 AWOOGA features
 ---------------
 * Encryption
@@ -1599,7 +1600,7 @@ AWOOGA: Installers
 
   Not only that, but very commonly the installers are left around after
   they have completed, and since they aren't treated with as much
-  scrutiny as the rest of the web application, they can have slappy code
+  scrutiny as the rest of the web application, they can have sloppy code
   leading to many vulnerabilities, or even allow anyone to reconfigure
   your site.
 
@@ -1609,7 +1610,7 @@ SELinux: brief introduction
 * Mandatory Access Control
 
   * Difference from "Unix-like" behaviour
-  * The parable of beer delivery service
+  * The parable of water delivery service
 
 * Roadblocks to SELinux adoption
 
@@ -1620,14 +1621,264 @@ SELinux: brief introduction
 Living with SELinux
 -------------------
 * Familiarize yourself with SELinux
+* SELinux is first and foremost a labeling system
+
+  * Every file has a context
+  * Everything is a file
+  * Must be explicitly allowed to transition
+
+* Majority of problems are due to mislabeling
+* Understand ``unconfined`` domains
+
+.. container:: handout
+
+  It is unfortunate that almost a full decade after SELinux was first
+  introduced into a mainline Linux distribution, people are still
+  treating it as some kind of new-fangled scary-complex technology that
+  should be relegated to military installations and ivory towers. In the
+  decade that has passed, SELinux has really matured and developed
+  plenty of excellent documentation, a robust set of tools and a
+  dedicated following. If you've configured iptables and are able to
+  wrap your head around such concepts as VLANs and DNS zones -- you are
+  certainly bright enough to handle SELinux.
+
+  Familiarize yourself with SELinux
+    This is where I'm supposed to recommend a number of books or some
+    other materials, but the book I cut my teeth on, "SELinux by
+    example," came out in 2006 and is pretty dated by now. You can still
+    get it for an excellent introduction on the core concepts, but the
+    later chapters might get you frustrated, as the toolchain has
+    evolved quite a bit and actual examples may no longer work.
+
+    `Security-Enhanced Linux User Guide`_ published by Red Hat is
+    probably the best non-academic resource for learning SELinux. That,
+    and `Dan Walsh's blog`_, especially if you want to know what's
+    coming in future versions of RHEL.
+
+    .. _`Security-Enhanced Linux User Guide`: http://www.redhat.com/resourcelibrary/datasheets/red-hat-enterprise-linux-6-security-enhanced-linux
+    .. _`Dan Walsh's Blog`: http://danwalsh.livejournal.com/
+
+  First and foremost a labeling system
+    Learn to rely on the ``-Z`` flags that exist in the majority of base
+    tools to discover what SELinux labels are your files and processes.
+    Once SELinux is enabled, every file automatically gets a default
+    context. Once files are executed, the context may transition to
+    another, but only if that's explicitly allowed (most daemons
+    transition into their own domain once executed).
+
+  Majority of problems are due to mislabeling
+    If you're getting SELinux denials, chances are something is
+    mislabeled. In my experience, most commonly this happens when files
+    are ``mv``'d around instead of ``cp``'d -- e.g. you may have
+    ``scp``'d a file into your homedir and then ``mv``'d it into
+    ``/var/www/html``. The reason it's not working is because the
+    context on the file is still ``user_home_t`` -- had you used ``cp``
+    instead, it would have gotten the default context for
+    ``/var/www/html``, which is ``httpd_sys_content_t``. You quickly
+    learn to always use ``cp`` on an SELinux system.
+
+    Another reason why something is mislabelled is because you may be
+    trying to run/serve it out of an unusual location (``/opt``,
+    ``/group``, ``/myorg``, etc) and therefore it's getting wrong
+    labels. We'll go over that later in some more detail.
+
+  Understand ``unconfined`` domains
+    The "targetted" policy is the one most commonly used, and it has a
+    pretty straightforward approach -- write comprehensive policies for
+    the majority of system daemons, and allow everything else to run
+    "unconfined." To an unconfined process, SELinux is pretty much in
+    permissive mode (unless it transitions to another, confined domain).
+    This means that if you write your own daemon and don't bother
+    putting together an SELinux policy for it, it'll still work just
+    fine, relying solely on classic user- and group-based permissions.
+
+
+Permissive mode
+---------------
 * Start with ``permissive mode``
+* Blunt approach
+
+  * ``setenforce 0`` on cmdline
+  * ``enforcing=0`` boot flag
+  * ``/etc/sysconfig/selinux`` file
+
+* Fine-tuning approach
+
+  * ``semanage permissive -a domain_t``
+  * Much safer, use instead of ``setenforce 0``
+
+.. container:: handout
+
+  Start with ``permissive mode``
+    Unless you're a seasoned SELinux pro, always start out in
+    "Permissive mode". This effectively tells SElinux to only detect and
+    report violations, but not actually block them. If you do as much
+    and don't go any further with SELinux, you've already significantly
+    improved your server's security posture, since now you have a very
+    detailed audit log of violations that you can use during forensics.
+
+    Permissive mode can be applied either bluntly, to the whole system,
+    or selectively, to specific SELinux domains.
+
+  Blunt approach
+    You can put the entire OS into SELinux-permissive mode via one of
+    three ways:
+
+    1. By issuing ``setenforce 0`` via the commandline. This was
+       much-maligned when first introduced, but this command can only
+       be issued by the unconfined root user. If someone is already able
+       to execute arbitrary commands as unconfined root user on your
+       system, ``setenforce 0`` is the last of your worries.
+    2. If you can't even boot and suspect that it may be because of
+       SELinux labeling going haywire, you can pass ``enforcing=0`` flag
+       to kernel, which will allow you to boot into permissive mode, so
+       you can fix your labels.
+    3. If you want to make any of the above persistent between reboots,
+       the file to modify is /etc/sysconfig/selinux.
+
+  Fine-tuning approach
+    The moment you put your system into permissive mode, it loses ALL
+    benefits offered by SELinux beyond mere auditing. You really should
+    not be using the abovementioned blunt tools to troubleshoot policy
+    problems -- a much better approach is to put only the offending
+    domain itself into permissive mode and let the rest of the OS
+    continue to benefit from SELinux confinement. Find out which domain
+    is causing you grief in the audit logs (more on that below), and
+    then put it into permissive using:
+
+    .. code-block:: sh
+
+        semanage permissive -a domain_t
+
+
+Ausearch, audit2why, audit2allow
+--------------------------------
+* Can solve nearly all your problems
+* ``ausearch -ts recent -m avc``
+* add ``--raw`` and pipe to:
+
+  * ``audit2why``
+  * ``audit2allow``
+
+* ``audit2allow`` can write full policies
+* It's not to be used lightly
+* Be aware of ``dontaudit`` rules
+
+.. container:: handout
+
+  I can say without any exaggeration that the vast majority of my
+  SELinux troubleshooting involves only three tools:
+
+  * ausearch
+  * audit2allow
+  * audit2why
+
+  ausearch
+    Instead of looking directly at files in ``/var/log/audit``, you
+    should be using ``ausearch -m avc`` to look at your SELinux denials.
+    You should additionally pass the ``-ts`` flag to indicate how far
+    back ausearch should be looking. It's both very extensive and very
+    finicky about the time formats, so I normally just use ``-ts
+    recent`` for recent problems and ``-ts today`` for anything older
+    than 10 minutes.
+
+    The primary benefit of using ausearch vs. looking directly at files
+    in ``/var/log/audit`` is human-friendly time formats instead of
+    timestamps, and other handy visual cues.
+
+  audit2why
+    If you've received an AVC and need help understanding why it's
+    happened, you can pipe the output of ``ausearch`` to ``audit2why``
+    in order to better understand the problem. It'll get you 90% there,
+    most of the time, and is really good at pointing out labeling
+    problems.
+
+  audit2allow
+    If you've established that your particular problem isn't because of
+    a mislabeled file, you can use ``audit2allow`` to create a local
+    policy and apply it to allow this or that particular behaviour.
+
+
+Stick to default paths
+----------------------
 * Do not change default file locations
 
-  * Or learn how SELinux file labeling works
-  * You may have to anyway
+  * Really, it's not worth it
+  * Just deep-mount that partition
+  * You can add contexts to NFS mounts
 
-* Learn how to use ``ausearch`` and ``aureport``
-* Learn SELinux file contexts and booleans
+* You can assign path equivalence
+
+.. code-block:: sh
+
+    semanage fcontext -a -e /var/www /srv/sites
+
+.. container:: handout
+
+  Here's how to avoid most labeling problems:
+
+  Do not change default file locations
+    Really, it's not worth it. I know that almost every sysadmin feels
+    really strongly about where their files should belong, (``/opt`` vs.
+    ``/srv`` vs. ``/group``, vs ``/myorg``, etc) but if you happen to
+    value your time and sanity, you'll stick to the locations prescribed
+    by the FHS.
+
+    The worst approach is to symlink from the FHS location into another
+    toplevel location, such as from ``/var/lib/mysql`` into
+    ``/srv/databases/mysql``. Symlinks require their own policy under
+    SELinux, so chances are it won't work both because
+    ``/srv/databases/mysql`` is not known to SELinux, and because
+    ``mysqld_t`` doesn't allow accessing symlinks.
+
+    If you must store something on a larger partition, I suggest just
+    deep-mounting it where SELinux would expect it.
+
+  Or, you can assign path equivalence
+    If deep-mounting is not an acceptable solution to you for various
+    reasons, you can tell SELinux that a path is equivalent to another
+    path for which a policy exists. For example, if you want all your
+    websites in ``/srv/sites`` instead of ``/var/www``, you can issue
+    the following command to tell SELinux that ``/srv/sites`` should
+    receive the same treatment as ``/var/www``
+
+    .. code-block:: sh
+
+      semanage fcontext -a -e /var/www /srv/sites
+
+  You can NFS-mount with a context
+    You can pass a ``context`` parameter when mounting NFS (and many
+    other partitions, to assign a local context to the mount. Check out
+    ``man mount`` for more info.
+
+
+There's probably a boolean for that
+-----------------------------------
+* Sending mail? Accessing the db?
+
+  * There's a boolean for that
+
+.. code-block:: sh
+
+    semanage boolean -l | grep httpd
+
+.. container:: handout
+
+  SELinux booleans are optional SELinux policies that you can
+  selectively turn on and off to better tune SELinux to suit your needs.
+  Very commonly used daemons, such as Apache, will have lots and lots of
+  such booleans to allow or disallow things like sending mail,
+  connecting to a database, or running CGIs -- among many others.
+
+  Tools such as ``audit2allow`` and ``audit2why`` will usually
+  automatically recognize when a denial can be fixed by flipping a
+  boolean flag, which is another good reason to always check them first.
+
+  You should examine the output of ``semanage boolean -l`` for the list
+  of all available booleans and a terse description of what they do.
+  Some of them are on by default, but don't need to be, so remember that
+  you should use ``setsebool`` to both allow non-default functionality,
+  and turn off the stuff that doesn't need to be on.
 
 
 SELinux and web apps
