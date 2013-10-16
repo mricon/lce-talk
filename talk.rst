@@ -706,7 +706,7 @@ PHP: XSRF token example
   should only allow one value -- the latest generated. This has some
   usability downsides, e.g. a user may open the same form in two tabs
   and try to submit the one they had opened first, but any other
-  solutions are unsafe.
+  solutions are not as safe.
 
 
 SQL Injection
@@ -884,7 +884,7 @@ Shell Injection: What
   running commands as user "nobody," they can still do a lot of damage
   by sending out spam, attacking other computers on the net, or using
   this toehold on your network to plan other attacks against more
-  interesting targets.
+  interesting targets (a.k.a. network pivoting).
 
 
 Shell Injection: How
@@ -1269,15 +1269,13 @@ AWOOGA: Encryption
   Encryption is a great example of an "AWOOGA" feature because it is so
   easy to get it wrong. Few people have a good understanding of
   cryptography, and unfortunately it is one of those areas where limited
-  knowledge unfailingly leads to vulnerable design. In this talk I will
-  concentrate on encryption as implemented in web applications and not
-  on things like HTTPS connections.
+  knowledge unfailingly leads to vulnerable design.
 
   Encryption is easy to get wrong
     Most developers, unless they have actually invested time to learn
     the basics of cryptography, have very limited understanding of how
-    cryptography works. While most are able to tell a difference between
-    symmetric and asymmetric encryption, more fine details like
+    cryptography works. While most are able to tell the difference between
+    symmetric and asymmetric encryption, finer details, such as
     encryption algorithms and cipher block modes are usually reserved
     for people to whom cryptography is bread-and-butter. However, if you
     are implementing cryptography in your application, you *really*
@@ -1368,7 +1366,8 @@ AWOOGA: Password storage
     so-called "rainbow tables," which are huge lookup tables of hashes
     and corresponding plaintext strings. Unless it's a really, really
     good password (and they rarely are), chances are that an md5 hash of
-    it is already in a rainbow table somewhere.
+    it is already in a rainbow table somewhere. And even if it is a really,
+    really good password, brute-forcing md5 hashes is becoming dirt-cheap.
 
   Use salted passwords
     The annoying thing, this is a problem that has been solved many-many
@@ -1389,7 +1388,7 @@ AWOOGA: Password storage
     calculating password hashes. I know it's anathema for developers
     to deliberately pick a slow algorithm for anything, but this makes
     perfect sense for the purposes of password hashing. You only check a
-    password hash once during a session, so spending 10 ms instead of 1
+    password hash once during a session, so spending 100 ms instead of 1
     ms on calculating a password hash won't have any impact on your
     app's responsiveness, but it will make it unfeasible for an attacker
     to try to brute-force it.
@@ -1484,13 +1483,13 @@ AWOOGA: Email from site
   "to" as part of the form fields, which was responsible for untold
   petabytes of spam throughout the years. Newer incarnations required
   specifying the "to" field inside the script itself, which at least
-  reduced the spam recipients to just the site owners.
+  reduced the spam recipients to just the site owners themselves.
 
   We've tried to make spammers' lives more difficult with Captchas, but
   it's a war we've pretty much lost. Adding captchas to your forms has
   very limited effect these days.
 
-  We've started adding expiry tokens to forms, which act similar to XSRF
+  We started adding expiry tokens to forms, which act similar to XSRF
   tokens we went over earlier. This is effective in some cases, but if
   you have a highly trafficked site, spammers will simply hire very
   cheap 3-rd world labour to cut-and-paste spam into your forms.
@@ -1660,7 +1659,7 @@ Living with SELinux
 
   First and foremost a labeling system
     Learn to rely on the ``-Z`` flags that exist in the majority of base
-    tools to discover what SELinux labels are your files and processes.
+    tools to discover what SELinux labels are on your files and processes.
     Once SELinux is enabled, every file automatically gets a default
     context. Once files are executed, the context may transition to
     another, but only if that's explicitly allowed (most daemons
@@ -1711,7 +1710,7 @@ Permissive mode
 
   Start with ``permissive mode``
     Unless you're a seasoned SELinux pro, always start out in
-    "Permissive mode". This effectively tells SElinux to only detect and
+    "Permissive mode". This effectively tells SELinux to only detect and
     report violations, but not actually block them. If you do as much
     and don't go any further with SELinux, you've already significantly
     improved your server's security posture, since now you have a very
@@ -1726,11 +1725,11 @@ Permissive mode
 
     1. By issuing ``setenforce 0`` via the commandline. This was
        much-maligned when first introduced, but this command can only
-       be issued by the unconfined root user. If someone is already able
+       be issued by an unconfined root user. If someone is already able
        to execute arbitrary commands as unconfined root user on your
        system, ``setenforce 0`` is the last of your worries.
     2. If you can't even boot and suspect that it may be because of
-       SELinux labeling going haywire, you can pass ``enforcing=0`` flag
+       SELinux labeling gone haywire, you can pass ``enforcing=0`` flag
        to kernel, which will allow you to boot into permissive mode, so
        you can fix your labels.
     3. If you want to make any of the above persistent between reboots,
@@ -1782,9 +1781,10 @@ Ausearch, audit2why, audit2allow
     recent`` for recent problems and ``-ts today`` for anything older
     than 10 minutes.
 
-    The primary benefit of using ausearch vs. looking directly at files
-    in ``/var/log/audit`` is human-friendly time formats instead of
-    timestamps, and other handy visual cues.
+    The primary benefits of using ausearch vs. looking directly at files
+    in ``/var/log/audit`` are human-friendly time formats instead of
+    timestamps, ability to only look at denials vs. all other audit messages,
+    and handy visual cues.
 
   audit2why
     If you've received an AVC and need help understanding why it's
@@ -1824,19 +1824,19 @@ Stick to default paths
     value your time and sanity, you'll stick to the locations prescribed
     by the FHS.
 
-    The worst approach is to symlink from the FHS location into another
+    The worst approach is to symlink from the FHS path into another
     toplevel location, such as from ``/var/lib/mysql`` into
     ``/srv/databases/mysql``. Symlinks require their own policy under
     SELinux, so chances are it won't work both because
-    ``/srv/databases/mysql`` is not known to SELinux, and because
-    ``mysqld_t`` doesn't allow accessing symlinks.
+    ``/srv/databases/mysql`` is not known to SELinux and gets some default
+    label instead, and because ``mysqld_t`` doesn't allow accessing symlinks.
 
     If you must store something on a larger partition, I suggest just
     deep-mounting it where SELinux would expect it.
 
   Or, you can assign path equivalence
     If deep-mounting is not an acceptable solution to you for various
-    reasons, you can tell SELinux that a path is equivalent to another
+    reasons, you can tell SELinux that one path is equivalent to another
     path for which a policy exists. For example, if you want all your
     websites in ``/srv/sites`` instead of ``/var/www``, you can issue
     the following command to tell SELinux that ``/srv/sites`` should
@@ -1847,8 +1847,8 @@ Stick to default paths
       semanage fcontext -a -e /var/www /srv/sites
 
   You can NFS-mount with a context
-    You can pass a ``context`` parameter when mounting NFS (and many
-    other partitions, to assign a local context to the mount. Check out
+    You can pass a ``context`` parameter when mounting NFS (and some
+    other partitions), to assign a local context to the mount. Check out
     ``man mount`` for more info.
 
 
@@ -1947,22 +1947,6 @@ Setting contexts with semanage
     "/web/config(/.*)?"
 
 
-SELinux booleans
-----------------
-* Booleans are bits of SELinux policy that can be toggled on or off
-* To list all httpd-related booleans:
-
-.. code-block:: sh
-
- getsebool -a | grep httpd
-
-* To set a boolean (``-P`` for "persistent"):
-
-.. code-block:: sh
-
-  setsebool -P httpd_can_network_connect_db on
-
-
 Essential httpd-related booleans
 --------------------------------
 :``httpd_builtin_scripting``:      Enable mod_php and similar systems
@@ -1980,18 +1964,6 @@ Essential httpd booleans (contd)
 :``httpd_tty_comm``:        Allow httpd access to tty
                             (passphrase-protected SSL certificates)
 :``httpd_use_nfs``:         Allow httpd to access nfs-mounted partitions
-
-
-Writing your own policies
--------------------------
-* Find audit deny logs that you want to address
-* Make use of ``audit2why`` and ``audit2allow``
-
-.. code-block:: sh
-
-  ausearch -m avc -ts today -r | audit2why
-
-* Run in permissive to collect all AVCs
 
 
 ModSecurity: what it is
