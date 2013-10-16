@@ -74,6 +74,8 @@ Topics not covered
 
 Who am I?
 ---------
+.. class:: incremental
+
 * Web programmer since 1995
 
   * PHP since 1998
@@ -128,6 +130,7 @@ Who am I?
 
 Why multiple layers
 -------------------
+.. class:: incremental
 
 .. figure:: images/ols-made-out-of-meat.jpg
    :align: right
@@ -136,10 +139,14 @@ Why multiple layers
 
    © Atom Films, Terry Bisson
 
+.. class:: incremental
+
 * We're all made out of meat
 * Fail gracefully
 * Do risk-benefit analysis
 * "We don't handle money"
+
+  .. class:: incremental
 
   * Embarrassment is money
   * Liability is money
@@ -229,6 +236,8 @@ Why multiple layers
 
 Generic vulnerabilities
 -----------------------
+.. class:: incremental
+
 * Cross-site violations
 
   * XSS, XSRF
@@ -303,7 +312,11 @@ XSS: What
 
 XSS: How
 --------
+.. class:: incremental
+
 * <script src="http://evil.com/evil.js"></script>
+
+  .. class:: incremental
 
   * Read or write cookies
   * Execute commands
@@ -364,12 +377,15 @@ XSS: Fix
   Some people, when confronted with a problem, think "I know, I’ll use
   regular expressions." Now they have two problems. --jwz
 
+.. class:: incremental
+
 * encode all user content
 * strip all tags
 
   * and then encode the results
 
 * cast all integers
+
 * don't try to "filter out bad html"
 
   * especially with regular expressions
@@ -458,7 +474,6 @@ PHP: Encode all tags
   <?php
     echo "Hello, " . htmlspecialchars($_GET['name']);?>
 
-
 .. container:: handout
 
   Let's look at concrete examples. To make your content impervious to
@@ -516,12 +531,12 @@ Cross-site request forgery
 
 XSRF: What
 ----------
+.. class:: incremental
+
 * Victim logs in to mybank.com and doesn't log out
 * Victim visits evil.com
 
-.. code-block:: html
-
-  <img src="mybank.com/xfer?to=attacker&sum=1000">
+  * ``<img src="mybank.com/xfer?to=attacker&sum=1000">``
 
 * Victim transfers money to the attacker
 
@@ -581,6 +596,8 @@ XSRF: What
 
 XSRF: How
 ---------
+.. class:: incremental
+
 * Users don't log out
 * Session time-outs too long
 * Users have tab-induced ADD
@@ -626,6 +643,8 @@ XSRF: How
 
 XSRF: Fix
 ---------
+.. class:: incremental
+
 * Requests coming from authenticated users must be given just as much
   scrutiny as all other requests.
 * Include "XSRF tokens" in all your forms
@@ -637,7 +656,7 @@ XSRF: Fix
 * You can verify all "drastic" actions
 
   * Is saying "I like goats" drastic?
-  * Beware of Vista effect
+  * Beware of "Just click yes" effect
 
 
 .. container:: handout
@@ -679,9 +698,10 @@ XSRF: Fix
     An effective approach to avoid XSRF attacks is to always present an
     "Are you sure?" page responding to client's actions that are
     "drastic," such as wiring money, changing email settings, etc.
-    However, the downside of this approach is a so-called "Vista effect"
-    -- asking the client to verify too many actions will be perceived as
-    a usability blemish and may turn off people from your application.
+    However, the downside of this approach is a so-called "Just click
+    yes effect" -- asking the client to verify too many actions will be
+    perceived as a usability blemish and may turn off people from your
+    application, or condition them to always click "yes."
 
 
 PHP: XSRF token example
@@ -723,11 +743,15 @@ SQL Injection
 
 SQL Injection: What
 -------------------
+.. class:: incremental
+
 * Access to back-end database
 
   * Delete records
   * Modify records
   * Obtain records
+
+    .. class:: incremental
 
     * Credit card numbers
     * Account credentials
@@ -749,9 +773,13 @@ SQL Injection: What
 
 SQL Injection: How
 ------------------
+.. class:: incremental
+
 * ``SELECT * FROM stuff WHERE data='{input}'``
 
-  * ``'; DROP DATABASE; SELECT '``
+  .. class:: incremental
+
+  * ``'; DROP DATABASE; --``
   * ``' OR ''='``
   * ``' UNION SELECT * FROM accounts WHERE ''='``
 
@@ -768,6 +796,8 @@ SQL Injection: How
 
 SQL Injection: Fix
 ------------------
+.. class:: incremental
+
 * Use parametrized statements
 * Use escaping routines if you must
 
@@ -867,6 +897,8 @@ Shell Injection
 
 Shell Injection: What
 ---------------------
+.. class:: incremental
+
 * Any site visitor can execute commands with httpd daemon's privileges
 * System will likely be used:
 
@@ -912,6 +944,8 @@ Shell Injection: How
 
 Shell injection: Fix
 --------------------
+.. class:: incremental
+
 * You're probably doing something wrong
 * If you must, filter out user input:
 
@@ -975,6 +1009,8 @@ Code injection
 
 Code injection: How
 -------------------
+.. class:: incremental
+
 * Templates!
 * Using ``eval()`` on user input
 * Using ``unserialize()`` on user input
@@ -1021,6 +1057,8 @@ Code injection: How
 
 Code injection: Fix
 -------------------
+.. class:: incremental
+
 * Don't use templates that work via ``eval()``
 
   * Or use same strategy as with XSS
@@ -1087,6 +1125,8 @@ Cookie theft
 
 Cookies: Session hijacking
 --------------------------
+.. class:: incremental
+
 * Session identifier is stored in a cookie
 * If an attacker knows your session identifier, they can assume your
   identity for the duration of the session
@@ -1110,6 +1150,8 @@ Cookies: Session hijacking
 
 Cookies: Session Hijacking fix
 ------------------------------
+.. class:: incremental
+
 * Make sure session identifiers are random
 * Never pass session IDs in URLs
 * Use secure cookies
@@ -1183,6 +1225,8 @@ Cookies: Session Hijacking fix
 
 Cookies: Session fixation
 -------------------------
+.. class:: incremental
+
 * Session hijacking "in reverse"
 * Attacker establishes a session and forces it onto victim
 
@@ -1213,6 +1257,8 @@ Cookies: Session fixation
 
 Cookies: Session fixation fix
 -----------------------------
+.. class:: incremental
+
 * Re-initialize the session after authentication
 * Never accept session identifiers in GET/POST
 
@@ -1252,6 +1298,8 @@ AWOOGA features
 
 AWOOGA: Encryption
 ------------------
+.. class:: incremental
+
 * Encryption is easy to get wrong
 
   * Symmetric? Asymmetric? AES? CBC or CFB?
@@ -1321,6 +1369,8 @@ AWOOGA: Encryption
 
 AWOOGA: Password storage
 ------------------------
+.. class:: incremental
+
 * Consider OAuth (Facebook, Google, Twitter, etc)
 
   * Make password handling "not your problem"
@@ -1400,10 +1450,16 @@ AWOOGA: Password storage
 
 AWOOGA: Password resets
 -----------------------
+.. class:: incremental
+
 * "Personal questions" are backdoors to your system
+
+  .. class:: incremental
 
   * User-chosen "personal questions" are very weak
   * Or they are too hard and users forget them
+
+    .. class:: incremental
 
     * What was my favourite movie 3 years ago?
     * Nobody knows how to spell "fuchsia"
@@ -1464,6 +1520,8 @@ AWOOGA: Password resets
 
 AWOOGA: Email from site
 -----------------------
+.. class:: incremental
+
 * Contact forms are spammer paradise
 
   * Infamous ``formmail.cgi``
@@ -1500,6 +1558,8 @@ AWOOGA: Email from site
 
 AWOOGA: File uploads
 --------------------
+.. class:: incremental
+
 * Do not place uploaded files into web root
 * Check file names, if you must do it
 * Have a "CYA policy" for malware-infected files
@@ -1525,6 +1585,8 @@ AWOOGA: File uploads
 
 AWOOGA: Templating systems
 --------------------------
+.. class:: incremental
+
 * Amazing number of them uses ``eval()``
 * Those that don't may not properly escape formatting codes from user
   content
@@ -1541,6 +1603,8 @@ AWOOGA: Templating systems
 
 AWOOGA: Search
 --------------
+.. class:: incremental
+
 * Database-based search
 
   * Expression parsing may leave you open to SQL injection attacks
@@ -1583,6 +1647,8 @@ AWOOGA: Search
 
 AWOOGA: Installers
 ------------------
+.. class:: incremental
+
 * Usually require a directory writable by httpd
 * Are usually left undeleted after installation
 
@@ -1606,6 +1672,8 @@ AWOOGA: Installers
 
 SELinux: brief introduction
 ---------------------------
+.. class:: incremental
+
 * Mandatory Access Control
 
   * Difference from "Unix-like" behaviour
@@ -1619,6 +1687,8 @@ SELinux: brief introduction
 
 Living with SELinux
 -------------------
+.. class:: incremental
+
 * Familiarize yourself with SELinux
 * SELinux is first and foremost a labeling system
 
@@ -1694,6 +1764,8 @@ Living with SELinux
 
 Permissive mode
 ---------------
+.. class:: incremental
+
 * Start with ``permissive mode``
 * Blunt approach
 
@@ -1752,6 +1824,8 @@ Permissive mode
 
 Ausearch, audit2why, audit2allow
 --------------------------------
+.. class:: incremental
+
 * Can solve nearly all your problems
 * ``ausearch -ts recent -m avc``
 * add ``--raw`` and pipe to:
@@ -1762,6 +1836,8 @@ Ausearch, audit2why, audit2allow
 * ``audit2allow`` can write full policies
 * It's not to be used lightly
 * Be aware of ``dontaudit`` rules
+
+  * ``semanage dontaudit off``
 
 .. container:: handout
 
@@ -1796,22 +1872,38 @@ Ausearch, audit2why, audit2allow
   audit2allow
     If you've established that your particular problem isn't because of
     a mislabeled file, you can use ``audit2allow`` to create a local
-    policy and apply it to allow this or that particular behaviour.
+    policy and apply it to allow this or that particular behaviour. It's
+    important to note that this shouldn't be used lightly -- you
+    actually need to look through your list of AVCs and remove any
+    entries that are either unrelated to the domain you're trying to
+    secure, or grant permissions that are overbroad.
+
+  Dontaudit rules
+    The ``dontaudit`` rules were created in response to common
+    false-positive AVCs. For example, almost everything will try to read
+    ``/etc/passwd`` or poke around ``/proc``, so SELinux is told to deny
+    and not bother recording such AVCs. Unfortunately, sometimes they
+    will quietly deny things that actually make your application break,
+    so you may find that things are not working despite there not being
+    any AVCs generated. In that case, you will need to turn off
+    ``dontaudit`` rules using ``semanage dontaudit off`` and see which
+    AVCs are being reported.
 
 
 Stick to default paths
 ----------------------
+.. class:: incremental
+
 * Do not change default file locations
 
   * Really, it's not worth it
   * Just deep-mount that partition
   * You can add contexts to NFS mounts
 
-* You can assign path equivalence
+* You can assign path equivalence:
 
-.. code-block:: sh
-
-    semanage fcontext -a -e /var/www /srv/sites
+  * ``semanage fcontext -a -e /var/www /srv/sites``
+  * ``resorecon -Rvvv /srv/sites``
 
 .. container:: handout
 
@@ -1883,6 +1975,8 @@ There's probably a boolean for that
 
 SELinux and web apps
 --------------------
+.. class:: incremental
+
 * Limited usefulness when running scripts as part of httpd
 
   * Httpd daemon vulnerabilities
@@ -1891,6 +1985,7 @@ SELinux and web apps
 
 * Much more powerful when used with CGI/FCGI scripts
 
+  * Allows ``httpd_t`` to transition to another domain
   * Subject of our hands-on session
 
 .. container:: handout
