@@ -1,6 +1,5 @@
 .. include:: <s5defs.txt>
 .. footer:: LinuxCon Europe, 2013
-.. class:: incremental
 
 Multilayer Web Security
 =======================
@@ -2023,6 +2022,37 @@ Essential httpd file contexts
 :``httpd_sys_script_exec_t``: CGI executables
 :``public_content_rw_t``:     Blanket type for all other public content
 
+.. container:: handout
+
+  These file contexts are essential to properly label files and
+  directories for httpd server access.
+
+  httpd_sys_content_t
+    This is the blanket label for all read-only content. Everything
+    under /var/www/html gets this label. The http daemon is able to read
+    but not write to these files.
+
+  httpd_sys_rw_content_t
+    The same as above, but httpd is allowed read-write access. There are
+    a few default locations where files get this label, but chances are
+    you'll need to set it manually for your own files.
+
+  httpd_sys_script_exec_t
+    This is the blanket type for CGI executables. It will transition
+    into ``httpd_sys_script_t``, so all CGI scripts will be running in
+    this SELinux domain, unless you create a custom policy for them.
+    Files in ``/var/www/cgi-bin`` will automatically receive this label.
+
+  public_content_rw_t
+    It is pretty common that you will want to have some kind of global
+    label for files uploaded via sftp or rsync. A number of ``public_``
+    labels exist for this purpose, as well as corresponding ``anon``
+    boolean switches. For example, say you want to be able to have users
+    upload files into /var/www/sites via rsync that apache would be able
+    to read and serve. You can either write your own policy, or you can
+    label /var/www/sites as ``public_content_rw_t`` and flip on the
+    ``rsync_anon_write`` boolean.
+
 
 Setting contexts with semanage
 ------------------------------
@@ -2041,6 +2071,31 @@ Setting contexts with semanage
   semanage fcontext -a -t httpd_sys_rw_content_t \
     "/web/config(/.*)?"
 
+.. container:: handout
+
+  Do not use ``chcon`` when labeling your files. Sure, it will work, but
+  your goal should be creating a policy that will automatically label
+  all files in that particular location. Otherwise you'll be redoing
+  chcon a lot.
+
+  You should use ``semanage fcontext`` to create a policy for a
+  location. For example, if you wanted to label everything under
+  ``/web`` as ``httpd_sys_content_t``, you would do:
+
+  .. code-block:: sh
+
+      semanage fcontext -a -t httpd_sys_content_t "/web(/.*)?"
+
+  This tells SELinux that all files created in /web should automatically
+  be labeled ``httpd_sys_content_t``. Once that's done, you should run:
+
+  .. code-block:: sh
+
+    restorecon -Rvvv /web
+
+  This should only be necessary once, unless files in ``/web`` get
+  mislabeled due to things like ``mv``'ing things around.
+
 
 Essential httpd-related booleans
 --------------------------------
@@ -2049,6 +2104,12 @@ Essential httpd-related booleans
 :``httpd_can_network_connect_db``: Allow httpd to open network socket
                                    to a db server
 :``httpd_can_sendmail``:           Allow httpd to invoke sendmail
+
+.. container:: handout
+
+  Here's a spattering of booleans that you are almost guaranteed to flip
+  on your servers. There are more -- check them out using ``semanage
+  boolean -l | grep httpd``.
 
 
 Essential httpd booleans (contd)
@@ -2063,28 +2124,123 @@ Essential httpd booleans (contd)
 
 ModSecurity: what it is
 -----------------------
+.. class:: incremental
+
 * "Web Application Firewall" (WAF)
 * Analysis of HTTP traffic at the Apache level
 
   * Restrict HTTP methods
   * Analyze and enforce payload compliance
-  * Stop attacks before they get to your web apps
+  * Use scoring rules to block malicious traffic
+
+* Stop attacks before they get to your web apps
+
+.. container:: handout
+
+  ModSecurity is a web application firewall developed by <insert here>.
+  It's an open-source solution with a for-pay component, but is widely
+  recognized as the best free/libre Web Application Firewall (WAF).
+
+  WAFs are, in essense, a collection of both rules and heuristics that
+  analyze HTTP requests (and, in many cases, responses) and can either
+  allow/deny the request or, more rarely, alter it in order to add or
+  remove content. ModSecurity is an Apache server module that plugs in
+  directly into the Apache request/response processing routines and is
+  both robust and efficient.
+
+  ModSecurity is able to perform all of the following:
+
+  Restrict HTTP methods
+    Some of the basic operations can restrict which methods are allowed
+    to be sent to which URLs. For example, if none of your pages should
+    be processing any POST requests, you can tell ModSecurity to reject
+    such requests before they get to your app.
+
+  Analyze and enforce payload compliance
+    If you do allow POST requests to some pages, you can configure
+    ModSecurity to enforce payload compliance to ensure that anything
+    submitted to your application is pre-filtered. You can set
+    parameters such as "field foo must be an integer," or "field bar
+    must not be longer than 16 characters," or "field baz must not
+    contain non-alphanumeric characters."
+
+    This is, of course, not limited to POST requests, but can also be
+    applied to other methods or fields passed via cookies.
+
+  Use scoring rules to block malicious traffic
+    ModSecurity ships with an extensive ruleset that uses scoring to
+    recognize and block common attacks against web applications. This is
+    particularly effective against common scanning tools used by
+    run-of-the-mill attackers to find exploitable web applications, but
+    the trade-off is a potentially high rate of false-positives and
+    denial of legitimate requests.
+
+  The main goal of ModSecurity is to stop attacks before they get to
+  your web apps, and it can be invaluable when helping safeguard legacy
+  web applications that cannot be easily audited and fixed.
 
 
 ModSecurity: what it is NOT
 ---------------------------
+.. class:: incremental
+
 * NOT a magic wand that makes you secure
 * NOT for the lazy
 * NOT for the faint of heart
 * 3rd-party app owners will NOT be amused
 
+.. content:: handout
+
+  With a name like "ModSecurity," it's easy to fall prey to thinking
+  that this tool will make you magically secure. No such tool exists --
+  anyone claiming the opposite is after your money. ModSecurity is a
+  powerful utility that can greatly advance your security posture, but
+  it's not a magic wand.
+
+  Furthermore, since ModSecurity sets out to solve a very complex task,
+  it's a very complex tool. It can easily rival SELinux in the
+  complexity of its rulesets, especially if you are not good at reading
+  regular expressions that span several lines (and who is?). If you are
+  thinking about adding ModSecurity to your web server, be prepared to
+  spend a few weeks going through logs and tweaking the rules.
+
+  The above is especially true if you are trying to secure a complex
+  3rd-party application, especially one that has builtin administration
+  interfaces. If you have a blogging platform that requires users to
+  submit HTML or SQL queries (e.g. for reporting), you really don't want
+  ModSecurity to report such things as violations.
+
+  And if you think it's bad with 3-rd party app vendors demanding that
+  disable SELinux, any mention of ModSecurity will likely result in your
+  support contract being voided. Especially with HTML5 applications that
+  rely on behind-the-scenes communication with the server -- oftentimes
+  web application firewalls will break them in very strange and
+  unpredictable ways. Troubleshooting problems was much simpler when
+  users actually had to click "Submit" for a POST request to be issued.
+
 
 Paranoid vs. Heuristic approach
 -------------------------------
+.. class:: incremental
+
 * Write your own rules from scratch
 * Use pre-written rules in "paranoid mode"
 * Use a combination of both
 * Use pre-written rules with "threshold scoring"
+
+.. container:: handout
+
+  There's two basic ways you can use ModSecurity -- "paranoid" mode
+  where you write all your rules from scratch to define all your
+  methods, URLs and payloads. Or, you can use the bundled score-based
+  ruleset to recognize and block potentially malicious traffic. It works
+  kind of like spamassassin -- each defined rule has a score and if a
+  certain threshold is exceeded, the request is blocked.
+
+  You can also combine the two approaches and use both the scoring
+  ruleset and the paranoid rules depending on the URLs being requested.
+
+  TODO: test if paranoid mode still exists
 
 
 ModSecurity: paranoid approach
