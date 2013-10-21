@@ -1,8 +1,8 @@
 .. include:: <s5defs.txt>
 .. footer:: LinuxCon Europe, 2013
 
-Multilayer Web Security
-=======================
+Multi-layered Web Security
+==========================
 
 :Author:  Konstantin Ryabitsev
 :Date:    October, 2013
@@ -178,7 +178,7 @@ Why multiple layers
     physical -- is the concept of failing gracefully. Have more than one
     line of security. Visualize it as a castle that you must protect
     from raging hordes of barbarians. You won't just put up a wall. You
-    will probably have a moat, a drawbridge, turrets with arrowslits,
+    will probably have a moat, a drawbridge, turrets with arrow-slits,
     and sharks with freaking laser beams attached to their heads -- if
     you are evil enough.
 
@@ -188,7 +188,7 @@ Why multiple layers
     enough.
 
   Do risk-benefit analysis
-    All that said, it is important to exercise sound judgement when it
+    All that said, it is important to exercise sound judgment when it
     comes to deciding how many layers of security you are going to
     bother with. It's one thing if you are entrusted with protecting a
     digital version of Fort Knox, and it's completely another thing if
@@ -407,7 +407,7 @@ XSS: Fix
 
   Strip all tags
     The downside of encoding HTML entities is that if someone tried to
-    use HTML for benign purposes (e.g. if they tried to emphasise part
+    use HTML for benign purposes (e.g. if they tried to emphasize part
     of their message using <h1>, <b> or <i>), this escaped HTML code
     will look ugly on the resulting page. Common practice is to strip
     all HTML tags. Be careful, though, some HTML can be very complex so
@@ -1751,7 +1751,7 @@ Living with SELinux
     labels. We'll go over that later in some more detail.
 
   Understand ``unconfined`` domains
-    The "targetted" policy is the one most commonly used, and it has a
+    The "targeted" policy is the one most commonly used, and it has a
     pretty straightforward approach -- write comprehensive policies for
     the majority of system daemons, and allow everything else to run
     "unconfined." To an unconfined process, SELinux is pretty much in
@@ -1794,7 +1794,7 @@ Permissive mode
     You can put the entire OS into SELinux-permissive mode via one of
     three ways:
 
-    1. By issuing ``setenforce 0`` via the commandline. This was
+    1. By issuing ``setenforce 0`` via the command line. This was
        much-maligned when first introduced, but this command can only
        be issued by an unconfined root user. If someone is already able
        to execute arbitrary commands as unconfined root user on your
@@ -1809,7 +1809,7 @@ Permissive mode
   Fine-tuning approach
     The moment you put your system into permissive mode, it loses ALL
     benefits offered by SELinux beyond mere auditing. You really should
-    not be using the abovementioned blunt tools to troubleshoot policy
+    not be using the aforementioned blunt tools to troubleshoot policy
     problems -- a much better approach is to put only the offending
     domain itself into permissive mode and let the rest of the OS
     continue to benefit from SELinux confinement. Find out which domain
@@ -1875,7 +1875,7 @@ Ausearch, audit2why, audit2allow
     important to note that this shouldn't be used lightly -- you
     actually need to look through your list of AVCs and remove any
     entries that are either unrelated to the domain you're trying to
-    secure, or grant permissions that are overbroad.
+    secure, or grant permissions that are over-broad.
 
   Dontaudit rules
     The ``dontaudit`` rules were created in response to common
@@ -1902,7 +1902,7 @@ Stick to default paths
 * You can assign path equivalence:
 
   * ``semanage fcontext -a -e /var/www /srv/sites``
-  * ``resorecon -Rvvv /srv/sites``
+  * ``restorecon -Rvvv /srv/sites``
 
 .. container:: handout
 
@@ -1916,7 +1916,7 @@ Stick to default paths
     by the FHS.
 
     The worst approach is to symlink from the FHS path into another
-    toplevel location, such as from ``/var/lib/mysql`` into
+    top-level location, such as from ``/var/lib/mysql`` into
     ``/srv/databases/mysql``. Symlinks require their own policy under
     SELinux, so chances are it won't work both because
     ``/srv/databases/mysql`` is not known to SELinux and gets some default
@@ -2147,11 +2147,11 @@ ModSecurity: what it is
 
 .. container:: handout
 
-  ModSecurity is a web application firewall developed by <insert here>.
+  ModSecurity is a web application firewall developed by SpiderLabs.
   It's an open-source solution with a for-pay component, but is widely
   recognized as the best free/libre Web Application Firewall (WAF).
 
-  WAFs are, in essense, a collection of both rules and heuristics that
+  WAFs are, in essence, a collection of both rules and heuristics that
   analyze HTTP requests (and, in many cases, responses) and can either
   allow/deny the request or, more rarely, alter it in order to add or
   remove content. ModSecurity is an Apache server module that plugs in
@@ -2199,7 +2199,7 @@ ModSecurity: what it is NOT
 * NOT for the faint of heart
 * 3rd-party app owners will NOT be amused
 
-.. content:: handout
+.. container:: handout
 
   With a name like "ModSecurity," it's easy to fall prey to thinking
   that this tool will make you magically secure. No such tool exists --
@@ -2229,8 +2229,29 @@ ModSecurity: what it is NOT
   users actually had to click "Submit" for a POST request to be issued.
 
 
-From scratch vs. Heuristic approach
------------------------------------
+ModSecurity: IDS vs IPS mode
+----------------------------
+.. class:: incremental
+
+* ``SecRuleEngine DetectionOnly`` IDS mode
+* ``SecRuleEngine On`` IPS mode
+
+.. container:: handout
+
+  IDS ("Intrusion Detection") mode is exactly similar to "SELinux
+  Permissive" mode, in the sense that it will detect violations but not
+  actually deny any access. You can turn that mode on by setting
+  ``SecRuleEngine DetectionOnly`` in your apache config. This should be
+  your first action whenever you are either just starting with
+  ModSecurity, or getting ready to secure a Live application.
+
+  Once you have tweaked your rules and thresholds (more on that in a
+  bit), and your audit logs look good, you can switch back to the IPS
+  ("Intrusion Prevention") mode by setting ``SecRuleEngine On``.
+
+
+ModSecurity: From scratch vs. CRS
+---------------------------------
 .. class:: incremental
 
 * Write your own rules from scratch
@@ -2297,8 +2318,8 @@ ModSecurity: writing from scratch
      injection attacks or many other vulnerabilities.
 
 
-ModSecurity: heuristic approach
--------------------------------
+ModSecurity: Core Rule Set
+--------------------------
 .. class:: incremental
 
 * OWASP Core Rule Set
@@ -2334,7 +2355,7 @@ ModSecurity: heuristic approach
   In order not to regurgitate a lot of the same information, I suggest
   you read the post on this topic on the `modsecurity blog`_.
 
-  .. _`modsecurity blog` http://blog.modsecurity.org/2010/11/advanced-topic-of-the-week-traditional-vs-anomaly-scoring-detection-modes.html
+  .. _`modsecurity blog`: http://blog.modsecurity.org/2010/11/advanced-topic-of-the-week-traditional-vs-anomaly-scoring-detection-modes.html
 
 ModSecurity: tweaking thresholds
 --------------------------------
@@ -2379,11 +2400,21 @@ ModSecurity: tweaking thresholds
   ``notice_anomaly_score``
     Even less critical matches, which have a high chance of being
     legitimate access. For example, seeing "isnull" in the request will
-    trigger a "this may 
+    trigger a "this may be an SQL injection attack," but it's clearly
+    not sufficient to trigger a "deny" all by itself.
+
+  Once you have set these scores, you can tweak the overall threshold
+  levels by adjusting the ``inbound_anomaly_score_level`` and
+  ``outbound_anomaly_score_level`` variables. The default settings are
+  very conservative, resulting in any one critical-level rule resulting
+  in a deny. You can raise these settings to 10-15 if you notice that
+  you're triggering too many denials.
 
 
 ModSecurity: tweaking rules
 ---------------------------
+.. class:: incremental
+
 * Avoid modifying default rules
 
   * Upgrades will become a mess
@@ -2393,21 +2424,106 @@ ModSecurity: tweaking rules
 
   * Add exceptions based on various criteria
 
+.. container:: handout
+
+  Once you have tweaked your threshold levels to the point where most of
+  your site is working without denying legitimate access, you will need
+  to work on tweaking things rule-per-rule to allow chunks of your
+  site's functionality to continue functioning. This is very common with
+  CMS web apps, where you have to actually allow people to submit HTML
+  and javascript code, or with apps that actually allow people to submit
+  SQL code in order to tweak various reports or analysis tools. If your
+  site is dedicated to IT topics, you want to actually allow people to
+  search for keywords such as "wget," "curl," "bash," etc.
+
+  Avoid modifying default rules
+    Don't modify default rules, as this will result in increasingly
+    difficult ruleset upgrades.
+
+  Use ``SecRuleRemoveById`` for blunt tweaks
+    You can fully disable a rule from matching in a specific location.
+    Each matching rule has a unique ID that is logged in the modsecurity
+    audit log, and using that you can prevent specific rules from
+    triggering in particular site locations. E.g. you can place the
+    following in your apache configuration file:
+
+    .. code-block:: apache
+
+      <Location "/site/myform.php">
+        SecRuleRemoveById 900004
+      </Location>
+
+  Use ``SecRuleUpdateTargetBy*`` for precise tweaks
+    If you don't want to bluntly turn off a rule -- for example, when
+    you only want to stop it from matching the POST field "search", but
+    not any other fields or headers, you may tweak the rule to ignore a
+    specific argument. For example:
+
+    .. code-block:: apache
+
+      <Location "/site/myform.php">
+        SecRuleUpdateTargetById 900004 "!ARGS:search"
+      </Location>
+
+  See `this blog post`_ for more information on tweaking your core
+  ruleset.
+
+  .. _`this blog post`: http://blog.spiderlabs.com/2011/08/modsecurity-advanced-topic-of-the-week-exception-handling.html
+
 ModSecurity: also good for
 --------------------------
+.. class:: incremental
+
 * Detailed audit information
+
+  .. class:: incremental
 
   * Always logs full headers
   * Can log POST body (but think twice!)
 
 * Can scan outgoing data
 
+  .. class:: incremental
+
+  * Abort if backdoor response suspected (CRS rules)
   * Add "fakeuserpassword" into your password table
   * Abort response if that string is seen in body
-  * Abort if backdoor response suspected (CRS rules)
+
+.. container:: handout
+
+  In addition to acting as a filtering engine, ModSecurity can also do
+  the following for you:
+
+  Provide detailed auditing information
+    Default Apache logs are pretty basic and do not log a lot of data
+    that may be relevant to you for debugging or forensic purposes.
+    Installing ModSecurity, even just in detection mode, will log all
+    request headers, as well as any filter detection info.
+
+    You can even log all POST data, but you have to be careful, as a lot
+    of times POSTs can be either very large, or contain sensitive data,
+    such as user passwords. It's definitely not something you want to
+    inadvertently leak if your backups somehow fall into the wrong
+    hands.
+
+  Can scan outgoing data
+    By default, ModSecurity does not analyze outgoing data, as this
+    carries a significant performance impact. However, you may want to
+    turn this feature on, as it may provide the following benefits:
+
+    1. CRS rules will monitor for content normally sent by "backdoor"
+       apps, such as commonly installed by attackers on compromised
+       sites.
+    2. You can use these rules to detect data leaks, such as by adding a
+       uniquely recognizable string in a set of sensitive data. For
+       example, if you add "fakeuserpassword" into your password table,
+       any time someone manages to exploit your site and get your
+       user table, ModSecurity will block that output.
 
 PHP: mod_suphp
 --------------
+.. class:: incremental
+
 * Will execute php scripts with file owner rights
 
   * Excluding anything below userid < 500 (configurable)
@@ -2418,6 +2534,23 @@ PHP: mod_suphp
 
 * Nice tool for multi-site hosting
 * Runs as part of httpd_t domain
+
+.. container:: handout
+
+  A handy tool for shared hosting environments is mod_suPHP, which
+  allows PHP applications to be run as the user owning those files
+  (with obvious precautions, such as not running as root or other system
+  users). This mimics the behaviour of Apache's suEXEC, but mod_suPHP
+  also adds a few nifty features of its own:
+
+  * It can chroot to a specific subdir before executing the script,
+    which is awesome for shared environments
+  * Force umask for all newly created user files
+
+  An important downside of mod_suPHP as compared to executing PHP
+  scripts via mod_fcgid, for example, is that scripts will still execute
+  as part of the core ``httpd_t`` domain, so you cannot write
+  webapp-specific SELinux policies.
 
 Tools
 -----
