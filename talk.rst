@@ -2122,6 +2122,16 @@ Essential httpd booleans (contd)
 :``httpd_use_nfs``:         Allow httpd to access nfs-mounted partitions
 
 
+Practical part
+--------------
+* Let's write an SELinux policy for a CGI
+
+.. container:: handout
+
+  In this practical part, we'll be breaking away from this presentation
+  and writing an SELinux policy for a simple example CGI.
+
+
 ModSecurity: what it is
 -----------------------
 .. class:: incremental
@@ -2219,49 +2229,157 @@ ModSecurity: what it is NOT
   users actually had to click "Submit" for a POST request to be issued.
 
 
-Paranoid vs. Heuristic approach
--------------------------------
+From scratch vs. Heuristic approach
+-----------------------------------
 .. class:: incremental
 
 * Write your own rules from scratch
-* Use pre-written rules in "paranoid mode"
-* Use a combination of both
 * Use pre-written rules with "threshold scoring"
+
+  * Tweak the scores using a number of tweak commands
 
 .. container:: handout
 
-  There's two basic ways you can use ModSecurity -- "paranoid" mode
-  where you write all your rules from scratch to define all your
+  There's two basic ways you can use ModSecurity -- "write your own"
+  mode where you write your own rules from scratch to define all your
   methods, URLs and payloads. Or, you can use the bundled score-based
   ruleset to recognize and block potentially malicious traffic. It works
   kind of like spamassassin -- each defined rule has a score and if a
   certain threshold is exceeded, the request is blocked.
 
   You can also combine the two approaches and use both the scoring
-  ruleset and the paranoid rules depending on the URLs being requested.
+  ruleset and the from-scratch rules depending on the URLs being
+  requested -- for example if there are particular areas of your web
+  application that you would like to secure more tightly than others.
 
-  TODO: test if paranoid mode still exists
 
+ModSecurity: writing from scratch
+---------------------------------
+.. class:: incremental
 
-ModSecurity: paranoid approach
-------------------------------
 * Write rules from scratch
+
+  .. class:: incremental
 
   * Allows you to enforce payload schemas
   * Not suitable for large existing apps
 
-* Pre-written rules in "paranoid mode"
+.. container:: handout
 
-  * "Password may not contain the word SELECT"
+  Writing rules from scratch in ModSecurity is pretty straightforward
+  and will be both lighter in terms of processing and more easier to
+  grok than the heuristic approach. The goal of writing a from-scratch
+  rule is to tightly enforce the payload compliance with what the
+  application is expecting to receive. For example, if you know that a
+  form on your site may only ever receive a POST with these parameters:
+
+  * ``name``
+  * ``age``
+  * ``email``
+  * ``phonenum``
+
+  You can write a ModSecurity rule to enforce the following:
+
+  * ``name`` must be a string, no more than 100 characters long, and may
+    not contain control characters
+  * ``email`` must be a string, no more than 100 characters long, may
+    not contain spaces or commas, and must have a "@" character
+  * ``age`` must be an integer no less than 13 and no more than 100.
+  * ``phonenum`` may only contain digits and dashes and may be empty
+  * Do not allow any other fields to be submitted.
+
+  This clearly has several major downsides:
+
+  1. If you have a large application, this approach is simply untenable.
+  2. If web developers add a field called ``postalcode``, the rules must
+     be adjusted accordingly, or the whole form breaks.
+  3. You haven't really protected yourself from things like SQL
+     injection attacks or many other vulnerabilities.
 
 
 ModSecurity: heuristic approach
 -------------------------------
+.. class:: incremental
+
+* OWASP Core Rule Set
+* Self-contained vs. Collaborative mode
 * Understand security thresholds
 * Review and understand pre-written rules
 
   * Let's take a look now
   * ``/etc/httpd/modsecurity.d``
+
+* "Password may not contain the word SELECT"
+
+.. container:: handout
+
+  ModSecurity ships with an OWASP Core Rule Set (CRS), which is a
+  collection of filters and rules that will analyze all incoming
+  requests and score them according to various anomaly ratings in an
+  attempt to figure out whether the request is legitimate or an attempt
+  at doing something malicious.
+
+  There are two modes of operation for the CRS set -- the
+  "Self-Contained" mode, in which each rule is acting fully independent
+  from all other enabled rules. In other words, if you have 50 anomaly
+  detection rules enabled, and any one of them results in a match, it
+  is sufficient to block further request processing and return a "deny."
+
+  If that is a bit too drastic for your taste, you can enable the
+  "Collaborative mode," in which each matching rule is assigned a score,
+  which is tallied each time a matching rule is discovered. If the
+  summary score exceeds the configured maximum, only then will
+  modsecurity block further request processing and return a "deny."
+
+  In order not to regurgitate a lot of the same information, I suggest
+  you read the post on this topic on the `modsecurity blog`_.
+
+  .. _`modsecurity blog` http://blog.modsecurity.org/2010/11/advanced-topic-of-the-week-traditional-vs-anomaly-scoring-detection-modes.html
+
+ModSecurity: tweaking thresholds
+--------------------------------
+.. class:: incremental
+
+* ``anomaly_score`` variables
+
+  * ``critical_anomaly_score``
+  * ``error_anomaly_score``
+  * ``warning_anomaly_score``
+  * ``notice_anomaly_score``
+
+* ``anomaly_level`` variables
+
+  * ``inbound_anomaly_score_level``
+  * ``outbound_anomaly_score_level``
+
+.. container:: handout
+
+  The first set of variables to tweak is the anomaly_score variables.
+  These are "how much to increment the anomaly score when we see a
+  condition of this severity." The following variables are available:
+
+  ``critical_anomaly_score``
+    Reserved for cases when we're pretty certain someone is doing
+    something anomalous -- e.g. SQL syntax seen in POST, or
+    shell/javascript commands are seen in post, etc.
+
+  ``error_anomaly_score``
+    Usually reserved for outbound response analysis, such as recognizing
+    when your app is returning an error page and blocking it from being
+    shown (showing errors in production is generally a recipe for
+    leaking potentially confidential data about your app).
+
+  ``warning_anomaly_score``
+    These are used for less certain cases where the request is a bit
+    questionable, but not really enough to deem it critical. For
+    example, all clients usually support "HTTP/1.1", so that's what they
+    usually send in their request. Seeing someone request "HTTP/1.0" is
+    kinda weird, but not really enough to block it outright.
+
+  ``notice_anomaly_score``
+    Even less critical matches, which have a high chance of being
+    legitimate access. For example, seeing "isnull" in the request will
+    trigger a "this may 
 
 
 ModSecurity: tweaking rules
@@ -2286,6 +2404,7 @@ ModSecurity: also good for
 
   * Add "fakeuserpassword" into your password table
   * Abort response if that string is seen in body
+  * Abort if backdoor response suspected (CRS rules)
 
 PHP: mod_suphp
 --------------
