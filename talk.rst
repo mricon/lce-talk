@@ -774,7 +774,7 @@ SQL Injection: How
 ------------------
 .. class:: incremental
 
-* ``SELECT * FROM stuff WHERE data='{input}'``
+* ``SELECT * FROM stuff WHERE data='{$input}'``
 
   .. class:: incremental
 
